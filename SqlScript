@@ -1,0 +1,73 @@
+--create TABLE SANALMARKET (
+--    SİTE nvarchar(255),
+--    ÜRÜN nvarchar(255),
+--     FİYAT nvarchar(255)
+--);
+
+
+--insert into SANALMARKET 
+--VALUES
+
+--('Teknosa','Apple iPhone 8', '₺6.000,00'),
+--('Hepsiburada','Apple iPhone 8','₺6.120,00'),
+--('MediaMarkt','Apple iPhone 8','₺5.869,00'),
+--('Amazon','Apple iPhone 8 ','₺6.000,00'),
+--('Teknosa','PS 4','₺3.999,00'),
+--('Hepsiburada','PS 4','₺3.999,00'),
+--('MediaMarkt','PS 4','₺3.999,00'),
+--('Amazon','PS 4','₺3.850,00'),
+--('Teknosa','Apple MacBook Pro','₺10.999,00'),
+--('Hepsiburada','Apple MacBook Pro','₺11.250,00'),
+--('MediaMarkt','Apple MacBook Pro','₺10.899,00'),
+--('Amazon','Apple MacBook Pro','₺13.450,00')
+
+
+
+
+  ; with MaxCTE as (
+ select
+  c1.ÜRÜN, c1.SİTE, c1.FİYAT
+ from 
+  dbo.SANALMARKET c1
+  join (
+   select ÜRÜN, max(FİYAT) FİYAT
+   from dbo.SANALMARKET
+   group by ÜRÜN) c2
+  on c1.ÜRÜN = c2.ÜRÜN 
+   and c1.FİYAT = c2.FİYAT ),
+
+ minCTE as (
+  select
+   c1.ÜRÜN, c1.SİTE, c1.FİYAT
+  from 
+   dbo.SANALMARKET c1
+   join (
+    select ÜRÜN, min(FİYAT) FİYAT
+    from dbo.SANALMARKET
+    group by ÜRÜN) c2
+   on c1.ÜRÜN = c2.ÜRÜN 
+    and c1.FİYAT = c2.FİYAT ),
+
+  avgCTE as (
+ select ÜRÜN,  FORMAT(avg((cast(((replace(replace(replace(convert(varchar(7), FİYAT, 1),'.',''),'?',''),',','')))as decimal))),'C','tr-TR') FİYAT--AVG(cast((LEFT(FİYAT,1))as int))FİYAT--
+    from dbo.SANALMARKET
+    group by ÜRÜN
+	)
+
+select distinct
+ c.ÜRÜN, 
+  minCTE.SİTE as [Minimum Fiyatlı Site Adı], minCTE.FİYAT as [Minimum Fiyat],
+ maxCTE.SİTE as  [Maksimum Fiyatlı Site Adı], maxCTE.FİYAT as [Maksimum Fiyat],
+ avgCTE.FİYAT as [Ortalama Fiyat]
+into #TMP from
+ dbo.SANALMARKET c
+ join MaxCTE
+  on c.ÜRÜN = MaxCTE.ÜRÜN
+ join MinCTE
+  on c.ÜRÜN = minCte.ÜRÜN
+   join avgCTE
+  on c.ÜRÜN = avgCTE.ÜRÜN
+  and MaxCTE.ÜRÜN = minCTE.ÜRÜN;
+
+  select * from #TMP where ÜRÜN<>'PS 4'	or (ÜRÜN='PS 4' and [Maksimum Fiyatlı Site Adı]='Hepsiburada') order by [Minimum Fiyat] desc
+ drop table #TMP
